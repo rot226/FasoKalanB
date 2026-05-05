@@ -1,7 +1,26 @@
-# Environnement local
+# Secrets / configuration locale
 .env
+
+# Environnements virtuels
+venv/
+.venv/
 
 # Python
 __pycache__/
-*.py[cod]
-*.sqlite3
+*.pyc
+
+# Base de données locale
+/db.sqlite3
+
+# Fichiers utilisateurs / uploads
+media/*
+!media/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# Artefacts système Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
