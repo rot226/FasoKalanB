@@ -8,19 +8,37 @@ venv/
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Base de données locale
 /db.sqlite3
+db.sqlite3
 
 # Fichiers utilisateurs / uploads
 media/*
 !media/.gitkeep
 
-# IDE
+# IDE / éditeurs
 .vscode/
 .idea/
 
-# Artefacts système Windows
+# Artefacts système
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+.DS_Store
+
+# Build / packaging
+dist/
+build/
+*.egg-info/
+
+# Caches / tests / outils
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+htmlcov/
