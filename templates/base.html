@@ -27,17 +27,17 @@
               <a class="nav-link" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'password_change' %}">Changer mot de passe</a>
+              <a class="nav-link" href="{% url 'accounts:password_change' %}">Changer mot de passe</a>
             </li>
             <li class="nav-item">
-              <form action="{% url 'logout' %}" method="post" class="m-0">
+              <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
                 {% csrf_token %}
                 <button class="btn btn-outline-secondary btn-sm" type="submit">Déconnexion</button>
               </form>
             </li>
           {% else %}
             <li class="nav-item">
-              <a class="btn btn-primary btn-sm" href="{% url 'login' %}">Connexion</a>
+              <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
             </li>
           {% endif %}
         </ul>
