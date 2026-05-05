@@ -185,6 +185,10 @@ Cette section décrit une **orientation d’architecture** pour préparer une fu
 
 > Note : aucune implémentation active (middleware, routing spécifique, modèle dédié) n’est introduite ici ; il s’agit d’un cadrage documentaire pour faciliter les extensions futures.
 
+## Note dashboard
+
+Le dashboard complet dépend des US-DAS-01/02.
+
 ## Prochaine étape
 
 Aucun modèle métier n’est encore implémenté : la prochaine étape consiste à définir et coder les modèles du domaine (élèves, établissements, scolarité, paiements, etc.).
