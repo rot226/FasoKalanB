@@ -24,7 +24,7 @@
           </li>
           {% if user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'dashboard:home' %}">Dashboard</a>
+              <a class="nav-link" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
             </li>
             <li class="nav-item">
               <form action="{% url 'logout' %}" method="post" class="m-0">
