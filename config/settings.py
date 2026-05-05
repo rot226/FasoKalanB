@@ -1,9 +1,26 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = "django-insecure-change-me"
-DEBUG = True
-ALLOWED_HOSTS = []
+
+
+def _get_bool_env(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_list_env(name: str, default: list[str] | None = None) -> list[str]:
+    value = os.getenv(name)
+    if value is None:
+        return default or []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-me")
+DEBUG = _get_bool_env("DEBUG", True)
+ALLOWED_HOSTS = _get_list_env("ALLOWED_HOSTS", [])
 
 # Applications Django et applications locales
 INSTALLED_APPS = [
@@ -56,10 +73,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Base de données (développement)
+DB_PATH = os.getenv("DB")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": Path(DB_PATH) if DB_PATH else BASE_DIR / "db.sqlite3",
     }
 }
 

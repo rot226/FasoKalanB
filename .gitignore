@@ -1,0 +1,7 @@
+# Environnement local
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
