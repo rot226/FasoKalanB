@@ -49,25 +49,32 @@ ALLOWED_HOSTS=127.0.0.1,localhost
 
 Vous pouvez adapter ces variables selon votre environnement local.
 
-## Migrations et superuser
+## Migrations et admin local (méthode officielle)
 
 ```bash
 python manage.py migrate
-python manage.py createsuperuser
-```
-
-### Bootstrap admin de développement
-
-Une commande idempotente permet de créer (ou mettre à jour) automatiquement un superuser local `admin` avec le mot de passe `admin` :
-
-```bash
 python manage.py bootstrap_dev
 ```
+
+La commande `bootstrap_dev` est la **seule méthode officielle documentée** pour initialiser l'admin local de démonstration.
+
+
+### Mécanisme alternatif (non officiel)
+
+Un script Django shell est également disponible pour le **seed local de démonstration** :
+
+```bash
+python manage.py shell < scripts/seed_local_admin.py
+```
+
+Cette voie alternative est fournie pour dépannage local uniquement.
 
 Par sécurité, cette commande n'est autorisée que si :
 
 - `DEBUG=True`, **ou**
 - la variable d'environnement `AUTO_CREATE_DEV_ADMIN=1` est définie.
+
+Ne jamais utiliser ni versionner un mot de passe de production dans ce mécanisme. Le mot de passe `admin` est strictement réservé à l'environnement local de démonstration.
 
 Après exécution, changez immédiatement le mot de passe du compte via :
 
