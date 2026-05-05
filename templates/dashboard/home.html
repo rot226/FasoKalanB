@@ -1,90 +1,98 @@
-{% extends "base.html" %}
+{% extends "dashboard/base.html" %}
 
-{% block title %}Dashboard | FasoKalanB{% endblock %}
+{% block dashboard_title %}Dashboard | FasoKalanB{% endblock %}
 
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 mb-0">Tableau de bord</h1>
-  <span class="badge bg-dark text-uppercase">{{ dashboard_role }}</span>
-</div>
+{% block dashboard_heading %}Tableau de bord{% endblock %}
 
-{% if widgets %}
-  <div class="row g-3">
-    {% for widget in widgets %}
-      <div class="col-12 col-md-6 col-xl-3">
-        <div class="card h-100 border-{{ widget.severity }}">
-          <div class="card-body d-flex flex-column">
-            <p class="text-muted text-uppercase small mb-2">{{ widget.title }}</p>
-            <p class="display-6 fw-semibold mb-3">{{ widget.value }}</p>
-            <a href="{{ widget.link }}" class="btn btn-outline-{{ widget.severity }} btn-sm mt-auto">Voir</a>
+{% block dashboard_subheading %}
+  Vue d'ensemble de votre activité et suivi des alertes.
+{% endblock %}
+
+{% block dashboard_actions %}
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <span class="badge bg-dark text-uppercase">{{ dashboard_role }}</span>
+    {% block dashboard_quick_actions %}{% endblock %}
+  </div>
+{% endblock %}
+
+{% block dashboard_body %}
+  {% if widgets %}
+    <div class="row g-3">
+      {% for widget in widgets %}
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="card h-100 border-{{ widget.severity }}">
+            <div class="card-body d-flex flex-column">
+              <p class="text-muted text-uppercase small mb-2">{{ widget.title }}</p>
+              <p class="display-6 fw-semibold mb-3">{{ widget.value }}</p>
+              <a href="{{ widget.link }}" class="btn btn-outline-{{ widget.severity }} btn-sm mt-auto">Voir</a>
+            </div>
           </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
-{% else %}
-  <div class="alert alert-info" role="status">
-    Le dashboard détaillé n'est pas encore activé pour ce rôle
-  </div>
-  <div class="card border-0 shadow-sm">
-    <div class="card-body py-5 text-center text-muted">
-      <p class="mb-1 fw-semibold">Aucun indicateur disponible</p>
-      <p class="mb-0">Aucun widget n'est configuré pour votre rôle.</p>
+      {% endfor %}
     </div>
-  </div>
-{% endif %}
-
-<div class="card border-0 shadow-sm mt-4">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="h5 mb-0">Alertes</h2>
-      <div class="btn-group btn-group-sm" role="group" aria-label="Tri des alertes">
-        <a
-          href="?alert_sort=criticite&alert_dir={% if alerts_sort == 'criticite' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
-          class="btn btn-outline-secondary {% if alerts_sort == 'criticite' %}active{% endif %}"
-        >
-          Criticité
-        </a>
-        <a
-          href="?alert_sort=date&alert_dir={% if alerts_sort == 'date' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
-          class="btn btn-outline-secondary {% if alerts_sort == 'date' %}active{% endif %}"
-        >
-          Date
-        </a>
+  {% else %}
+    <div class="alert alert-info" role="status">
+      Le dashboard détaillé n'est pas encore activé pour ce rôle
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-5 text-center text-muted">
+        <p class="mb-1 fw-semibold">Aucun indicateur disponible</p>
+        <p class="mb-0">Aucun widget n'est configuré pour votre rôle.</p>
       </div>
     </div>
+  {% endif %}
 
-    {% if alerts %}
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Alerte</th>
-              <th>Criticité</th>
-              <th>Date</th>
-              <th>Écran concerné</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for alert in alerts %}
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Alertes</h2>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Tri des alertes">
+          <a
+            href="?alert_sort=criticite&alert_dir={% if alerts_sort == 'criticite' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
+            class="btn btn-outline-secondary {% if alerts_sort == 'criticite' %}active{% endif %}"
+          >
+            Criticité
+          </a>
+          <a
+            href="?alert_sort=date&alert_dir={% if alerts_sort == 'date' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
+            class="btn btn-outline-secondary {% if alerts_sort == 'date' %}active{% endif %}"
+          >
+            Date
+          </a>
+        </div>
+      </div>
+
+      {% if alerts %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
               <tr>
-                <td>{{ alert.title }}</td>
-                <td class="text-capitalize">{{ alert.severity }}</td>
-                <td>{{ alert.created_at_label }}</td>
-                <td>
-                  <a href="{{ alert.link }}" class="btn btn-link btn-sm p-0">{{ alert.scope }}</a>
-                </td>
+                <th>Alerte</th>
+                <th>Criticité</th>
+                <th>Date</th>
+                <th>Écran concerné</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="py-4 text-center text-muted">
-        <p class="mb-1 fw-semibold">Aucune alerte</p>
-        <p class="mb-0">Tout est à jour pour le moment.</p>
-      </div>
-    {% endif %}
+            </thead>
+            <tbody>
+              {% for alert in alerts %}
+                <tr>
+                  <td>{{ alert.title }}</td>
+                  <td class="text-capitalize">{{ alert.severity }}</td>
+                  <td>{{ alert.created_at_label }}</td>
+                  <td>
+                    <a href="{{ alert.link }}" class="btn btn-link btn-sm p-0">{{ alert.scope }}</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="py-4 text-center text-muted">
+          <p class="mb-1 fw-semibold">Aucune alerte</p>
+          <p class="mb-0">Tout est à jour pour le moment.</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
-</div>
 {% endblock %}
