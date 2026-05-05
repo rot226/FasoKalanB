@@ -67,6 +67,13 @@ Objectif : démarrer vite avec un socle minimal, puis ajouter les dépendances m
 
 > Conseil : ne pas ajouter immédiatement Celery, Redis, S3, observabilité, etc. tant qu’ils ne sont pas nécessaires au premier démarrage du projet.
 
+### Mise à jour des dépendances
+
+Après toute installation, suppression ou mise à jour de package dans le venv, régénérer le verrouillage des versions :
+
+- `pip freeze > requirements.txt`
+- Vérifier puis committer `requirements.txt` pour garder une installation reproductible sur chaque poste (Windows 11 inclus).
+
 ## Architecture applicative légère
 
 ### Vue d’ensemble des apps
