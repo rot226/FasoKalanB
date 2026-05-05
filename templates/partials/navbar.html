@@ -8,13 +8,13 @@
     <div class="collapse navbar-collapse" id="mainNavbar">
       <div class="ms-auto d-grid d-lg-flex gap-2 pt-3 pt-lg-0">
         {% if user.is_authenticated %}
-          <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
+          <form action="{% url 'logout' %}" method="post" class="m-0">
             {% csrf_token %}
             <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Déconnexion</button>
           </form>
-          <a class="btn btn-primary btn-sm" href="{% url 'dashboard:home' %}">Dashboard</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
         {% else %}
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'login' %}">Connexion</a>
         {% endif %}
       </div>
     </div>
