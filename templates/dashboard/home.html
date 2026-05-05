@@ -9,40 +9,52 @@
 {% endblock %}
 
 {% block dashboard_actions %}
-  <div class="d-flex flex-wrap align-items-center gap-2">
-    <span class="badge bg-dark text-uppercase">{{ dashboard_role }}</span>
-    {% block dashboard_quick_actions %}{% endblock %}
-  </div>
+  <span class="badge bg-dark text-uppercase">{{ dashboard_role }}</span>
+  {% block dashboard_quick_actions %}{% endblock %}
 {% endblock %}
 
 {% block dashboard_body %}
-  {% if widgets %}
-    <div class="row g-3">
-      {% for widget in widgets %}
-        <div class="col-12 col-md-6 col-xl-3">
-          <div class="card h-100 border-{{ widget.severity }}">
-            <div class="card-body d-flex flex-column">
-              <p class="text-muted text-uppercase small mb-2">{{ widget.title }}</p>
-              <p class="display-6 fw-semibold mb-3">{{ widget.value }}</p>
-              <a href="{{ widget.link }}" class="btn btn-outline-{{ widget.severity }} btn-sm mt-auto">Voir</a>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="alert alert-info" role="status">
-      Le dashboard détaillé n'est pas encore activé pour ce rôle
-    </div>
-    <div class="card border-0 shadow-sm">
-      <div class="card-body py-5 text-center text-muted">
-        <p class="mb-1 fw-semibold">Aucun indicateur disponible</p>
-        <p class="mb-0">Aucun widget n'est configuré pour votre rôle.</p>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+      <div>
+        <p class="text-muted text-uppercase small mb-1">Bienvenue</p>
+        <h2 class="h4 mb-1">Bonjour {{ current_user.username }}</h2>
+        <p class="mb-0 text-muted">Rôle actif : <span class="fw-semibold text-body">{{ dashboard_role }}</span></p>
       </div>
+      <span class="badge bg-light text-dark">Session active</span>
     </div>
-  {% endif %}
+  </div>
 
-  <div class="card border-0 shadow-sm mt-4">
+  <div id="kpi" class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Indicateurs clés (KPI)</h2>
+      </div>
+
+      {% if widgets %}
+        <div class="row g-3">
+          {% for widget in widgets %}
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="card h-100 border-{{ widget.severity }}">
+                <div class="card-body d-flex flex-column">
+                  <p class="text-muted text-uppercase small mb-2">{{ widget.title }}</p>
+                  <p class="display-6 fw-semibold mb-3">{{ widget.value }}</p>
+                  <a href="{{ widget.link }}" class="btn btn-outline-{{ widget.severity }} btn-sm mt-auto">Voir</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="py-4 text-center text-muted">
+          <p class="mb-1 fw-semibold">Aucune donnée ce mois-ci</p>
+          <p class="mb-0">Les cartes KPI s'afficheront dès qu'une donnée sera disponible.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div id="alertes" class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="h5 mb-0">Alertes</h2>
@@ -90,7 +102,48 @@
       {% else %}
         <div class="py-4 text-center text-muted">
           <p class="mb-1 fw-semibold">Aucune alerte</p>
-          <p class="mb-0">Tout est à jour pour le moment.</p>
+          <p class="mb-0">Aucune alerte active pour le moment.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Raccourcis modules</h2>
+      <div class="row g-2">
+        <div class="col-12 col-md-4">
+          <a href="#kpi" class="btn btn-outline-primary w-100">Voir les KPI</a>
+        </div>
+        <div class="col-12 col-md-4">
+          <a href="#alertes" class="btn btn-outline-primary w-100">Voir les alertes</a>
+        </div>
+        <div class="col-12 col-md-4">
+          <a href="#activite-recente" class="btn btn-outline-primary w-100">Voir l'activité</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="activite-recente" class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Activité récente</h2>
+      {% if alerts %}
+        <ul class="list-group list-group-flush">
+          {% for alert in alerts[:5] %}
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
+              <div>
+                <p class="mb-1 fw-semibold">{{ alert.title }}</p>
+                <p class="mb-0 text-muted small">{{ alert.created_at_label }} · {{ alert.scope }}</p>
+              </div>
+              <span class="badge text-bg-light text-capitalize">{{ alert.severity }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="py-3 text-center text-muted">
+          <p class="mb-1 fw-semibold">Aucune activité récente</p>
+          <p class="mb-0">Aucune donnée ce mois-ci.</p>
         </div>
       {% endif %}
     </div>
