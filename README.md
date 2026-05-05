@@ -125,3 +125,15 @@ accounts        schools        academics
 (dashboard, reports) -> lecture seule sur students/finance/academics/schools
 core -> utilitaires transverses sans logique métier
 ```
+
+
+### Dossier `media/` (uploads utilisateurs)
+
+Le dossier `media/` sert à stocker les fichiers téléversés par les utilisateurs (ex. photos de profil, photos d'élèves, justificatifs PDF/JPG, pièces administratives).
+
+Bonnes pratiques recommandées :
+
+- Ne pas versionner le contenu utilisateur dans Git (garder uniquement un `.gitkeep` si besoin).
+- Organiser les fichiers par sous-dossiers métier (ex. `media/students/photos/`, `media/students/justificatifs/`).
+- Contrôler les extensions et la taille des fichiers côté formulaire/validation Django.
+- En production, prévoir un stockage persistant (volume dédié, objet storage type S3, etc.).
