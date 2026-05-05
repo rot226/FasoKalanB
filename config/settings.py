@@ -3,6 +3,11 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Zone d'extension future (multi-tenant):
+# - centraliser ici les options globales de stratégie (ex: tenant par école),
+# - sans activer de logique runtime tant que le besoin n'est pas validé.
+# Cette base reste volontairement simple à ce stade.
+
 # Configuration via variables d'environnement (fallback local dev).
 # En production, définir SECRET_KEY, DEBUG=False et ALLOWED_HOSTS explicitement.
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me')
