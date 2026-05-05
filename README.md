@@ -37,6 +37,25 @@ Installation des dépendances :
 pip install -r requirements.txt
 ```
 
+## Windows 11 - démarrage rapide
+
+Depuis **Windows PowerShell** à la racine du projet :
+
+```powershell
+py -3.11 -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py bootstrap_dev
+python manage.py runserver
+```
+
+Accès utiles après démarrage :
+
+- Application : `http://127.0.0.1:8000/`
+- Admin Django : `http://127.0.0.1:8000/admin/`
+
 ## Configuration `.env`
 
 Créer un fichier `.env` à la racine (même niveau que `manage.py`) avec au minimum :
@@ -80,6 +99,35 @@ Après exécution, changez immédiatement le mot de passe du compte via :
 
 - `/admin/password_change/`
 - (template associé) `templates/registration/password_change_form.html`
+
+## Compte admin de développement
+
+Pour l'environnement local de développement, le compte d'administration initialisé utilise les identifiants suivants :
+
+- **Identifiant par défaut** : `admin`
+- **Mot de passe par défaut** : `admin` (local uniquement)
+
+⚠️ **Obligation de sécurité** : ce mot de passe doit être changé immédiatement après la première connexion, même en environnement local.
+
+## Erreurs fréquentes
+
+### `NoReverseMatch: 'home' not found`
+
+Cette erreur indique que Django ne trouve pas la route nommée `home` au moment d'exécuter un `redirect(...)`, un `{% url 'home' %}` ou un `reverse('home')`.
+
+Causes probables :
+
+- **Namespace non pris en compte** : la route existe mais sous un namespace (ex. `core:home` au lieu de `home`).
+- **`include(...)` manquant** dans le routeur principal (`config/urls.py`) vers les URLs de l'application concernée.
+- **Nom de route différent** : la vue est enregistrée avec un autre `name=...` que `home`.
+
+Checklist de correction (4-5 points) :
+
+1. Vérifier le `name='home'` (ou le nom réel) dans le fichier `urls.py` de l'app ciblée.
+2. Vérifier si un `app_name` est défini et, si oui, utiliser le namespace complet (`<app_name>:home`).
+3. Confirmer que `config/urls.py` inclut bien les URLs de l'app (`path(..., include('...urls'))`).
+4. Mettre à jour tous les templates et redirections pour utiliser exactement le même nom de route.
+5. Relancer le serveur Django et retester la navigation après correction.
 
 ## Lancement serveur
 
