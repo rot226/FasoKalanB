@@ -5,6 +5,7 @@ SECRET_KEY = "django-insecure-change-me"
 DEBUG = True
 ALLOWED_HOSTS = []
 
+# Applications Django et applications locales
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -12,6 +13,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Apps locales
     "apps.accounts",
     "apps.schools",
     "apps.academics",
@@ -38,7 +40,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -53,6 +55,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+# Base de données (développement)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -62,10 +65,24 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = []
 
-LANGUAGE_CODE = "fr-fr"
-TIME_ZONE = "UTC"
+# Internationalisation
+LANGUAGE_CODE = "fr-bf"
+TIME_ZONE = "Africa/Ouagadougou"
 USE_I18N = True
 USE_TZ = True
 
+# Fichiers statiques
 STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Fichiers médias
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Authentification
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "login"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
