@@ -30,4 +30,58 @@
     </div>
   </div>
 {% endif %}
+
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 mb-0">Alertes</h2>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Tri des alertes">
+        <a
+          href="?alert_sort=criticite&alert_dir={% if alerts_sort == 'criticite' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
+          class="btn btn-outline-secondary {% if alerts_sort == 'criticite' %}active{% endif %}"
+        >
+          Criticité
+        </a>
+        <a
+          href="?alert_sort=date&alert_dir={% if alerts_sort == 'date' and alerts_dir == 'desc' %}asc{% else %}desc{% endif %}"
+          class="btn btn-outline-secondary {% if alerts_sort == 'date' %}active{% endif %}"
+        >
+          Date
+        </a>
+      </div>
+    </div>
+
+    {% if alerts %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Alerte</th>
+              <th>Criticité</th>
+              <th>Date</th>
+              <th>Écran concerné</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alert in alerts %}
+              <tr>
+                <td>{{ alert.title }}</td>
+                <td class="text-capitalize">{{ alert.severity }}</td>
+                <td>{{ alert.created_at_label }}</td>
+                <td>
+                  <a href="{{ alert.link }}" class="btn btn-link btn-sm p-0">{{ alert.scope }}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="py-4 text-center text-muted">
+        <p class="mb-1 fw-semibold">Aucune alerte</p>
+        <p class="mb-0">Tout est à jour pour le moment.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
