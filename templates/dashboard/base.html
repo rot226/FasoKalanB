@@ -5,14 +5,16 @@
 {% block content %}
 <section class="row g-4">
   <div class="col-12">
-    <header class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+    <header class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3">
       <div>
         <h1 class="h3 mb-1">{% block dashboard_heading %}Tableau de bord{% endblock %}</h1>
         <p class="text-muted mb-0">{% block dashboard_subheading %}Espace sécurisé réservé aux utilisateurs connectés.{% endblock %}</p>
       </div>
-      {% block dashboard_actions %}
-        {% block dashboard_quick_actions %}{% endblock %}
-      {% endblock %}
+      <div class="d-flex flex-wrap align-items-center gap-2 justify-content-lg-end">
+        {% block dashboard_actions %}
+          {% block dashboard_quick_actions %}{% endblock %}
+        {% endblock %}
+      </div>
     </header>
   </div>
 
