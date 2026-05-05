@@ -52,6 +52,21 @@ Pour un poste de développement sous Windows 11 :
 5. Mettre à jour `pip` (recommandé) :
    - `python -m pip install --upgrade pip`
 
+### Bootstrap Django minimal (Windows 11)
+
+Objectif : démarrer vite avec un socle minimal, puis ajouter les dépendances métier avancées plus tard.
+
+1. Installer Django uniquement pour le bootstrap :
+   - `pip install "Django>=5.0,<6.0"`
+2. Vérifier l’installation :
+   - `python -m django --version`
+3. Générer un `requirements.txt` figé à partir de l’environnement actif :
+   - `pip freeze > requirements.txt`
+4. Vérifier le contenu figé :
+   - `type requirements.txt`
+
+> Conseil : ne pas ajouter immédiatement Celery, Redis, S3, observabilité, etc. tant qu’ils ne sont pas nécessaires au premier démarrage du projet.
+
 ## Architecture applicative légère
 
 ### Vue d’ensemble des apps
