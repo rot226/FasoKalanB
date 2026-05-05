@@ -56,6 +56,24 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
+### Bootstrap admin de développement
+
+Une commande idempotente permet de créer (ou mettre à jour) automatiquement un superuser local `admin` avec le mot de passe `admin` :
+
+```bash
+python manage.py bootstrap_dev
+```
+
+Par sécurité, cette commande n'est autorisée que si :
+
+- `DEBUG=True`, **ou**
+- la variable d'environnement `AUTO_CREATE_DEV_ADMIN=1` est définie.
+
+Après exécution, changez immédiatement le mot de passe du compte via :
+
+- `/admin/password_change/`
+- (template associé) `templates/registration/password_change_form.html`
+
 ## Lancement serveur
 
 ```bash
