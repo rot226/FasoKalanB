@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List, Optional
 
 from django.apps import apps
-from django.contrib.auth.models import Group
 from django.db.models import Model, Q, QuerySet, Sum
 
 
 @dataclass(frozen=True)
 class DashboardWidget:
-    title: str
-    value: str
-    link: str
-    severity: str
-
+    key: str
+    label: str
+    url: str
 
 
 ALERT_SEVERITY_ORDER = {
@@ -25,6 +22,36 @@ ALERT_SEVERITY_ORDER = {
     "moyenne": 2,
     "faible": 3,
 }
+
+ROLE_WIDGETS: Dict[str, List[DashboardWidget]] = {
+    "admin": [
+        DashboardWidget("effectif_total", "Effectif total", "/students/"),
+        DashboardWidget("nouveaux_inscrits", "Nouveaux inscrits", "/students/"),
+        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
+        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
+        DashboardWidget("anomalies", "Anomalies", "/students/"),
+    ],
+    "scolarite": [
+        DashboardWidget("effectif_total", "Effectif total", "/students/"),
+        DashboardWidget("nouveaux_inscrits", "Nouveaux inscrits", "/students/"),
+        DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
+        DashboardWidget("anomalies", "Anomalies", "/students/"),
+    ],
+    "finance": [
+        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
+        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
+    ],
+    "direction": [
+        DashboardWidget("effectif_total", "Effectif total", "/students/"),
+        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
+        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("anomalies", "Anomalies", "/students/"),
+    ],
+}
+
+DEFAULT_ROLE = "direction"
 
 
 def _build_default_alerts() -> List[Dict[str, object]]:
@@ -44,14 +71,6 @@ def _build_default_alerts() -> List[Dict[str, object]]:
             "created_at_label": "03/05/2026 14:15",
             "scope": "Élèves",
             "link": "/students/",
-        },
-        {
-            "title": "Planning pédagogique à valider",
-            "severity": "moyenne",
-            "created_at": datetime(2026, 5, 2, 11, 0),
-            "created_at_label": "02/05/2026 11:00",
-            "scope": "Académique",
-            "link": "/academics/",
         },
     ]
 
@@ -83,8 +102,8 @@ def get_dashboard_alerts(sort_key: str = "criticite", sort_dir: str = "desc") ->
         "alerts_dir": sort_dir,
     }
 
+
 def _resolve_role(user) -> str:
-    """Détermine le rôle principal utilisé pour l'affichage du dashboard."""
     role_order = ["admin", "scolarite", "finance", "direction"]
 
     if user.is_superuser or user.is_staff:
@@ -95,11 +114,10 @@ def _resolve_role(user) -> str:
         if role in user_groups:
             return role
 
-    return "direction"
+    return DEFAULT_ROLE
 
 
 def _get_model(app_label: str, model_names: Iterable[str]) -> Optional[type[Model]]:
-    """Retourne le premier modèle existant dans app_label parmi model_names."""
     for name in model_names:
         try:
             return apps.get_model(app_label, name)
@@ -115,7 +133,6 @@ def _base_queryset(model_class: Optional[type[Model]]) -> QuerySet:
 
 
 def _resolve_scope_ids(user) -> set:
-    """Résout les identifiants de périmètre autorisé (école) pour l'utilisateur connecté."""
     candidate_attrs = ["school_id", "ecole_id", "tenant_id"]
     scope_ids = {
         getattr(user, attr)
@@ -134,7 +151,6 @@ def _resolve_scope_ids(user) -> set:
 
 
 def filter_queryset_by_scope(queryset: QuerySet, user) -> QuerySet:
-    """Applique un filtrage de périmètre selon les colonnes school/ecole disponibles."""
     if user.is_superuser:
         return queryset
 
@@ -159,7 +175,6 @@ def aggregate_count(queryset: QuerySet) -> int:
 
 
 def aggregate_payment_amount(queryset: QuerySet) -> Decimal:
-    """Agrège un montant total depuis amount ou montant."""
     model_fields = {f.name for f in queryset.model._meta.get_fields()}
     amount_field = "amount" if "amount" in model_fields else "montant" if "montant" in model_fields else None
     if not amount_field:
@@ -167,25 +182,77 @@ def aggregate_payment_amount(queryset: QuerySet) -> Decimal:
     return queryset.aggregate(total=Sum(amount_field)).get("total") or Decimal("0")
 
 
-def aggregate_overdue_count(queryset: QuerySet, today: Optional[date] = None) -> int:
-    """Compte les échéances dépassées sur due_date/date_echeance non payées."""
-    today = today or date.today()
-    model_fields = {f.name for f in queryset.model._meta.get_fields()}
+def _resolve_date_field(model_fields: set[str], candidates: List[str]) -> Optional[str]:
+    for name in candidates:
+        if name in model_fields:
+            return name
+    return None
 
-    due_field = "due_date" if "due_date" in model_fields else "date_echeance" if "date_echeance" in model_fields else None
+
+def _build_status_unpaid_q(model_fields: set[str]) -> Q:
     status_field = "status" if "status" in model_fields else "statut" if "statut" in model_fields else None
+    if not status_field:
+        return Q()
+    return ~Q(**{f"{status_field}__in": ["paid", "paye", "payé"]})
 
-    if not due_field:
-        return 0
 
-    q = Q(**{f"{due_field}__lt": today})
-    if status_field:
-        q &= ~Q(**{f"{status_field}__in": ["paid", "paye", "payé"]})
-    return queryset.filter(q).count()
+def build_kpi_snapshot(user) -> Dict[str, object]:
+    today = date.today()
+    month_start = today.replace(day=1)
+    next_month_start = (month_start + timedelta(days=32)).replace(day=1)
+    near_deadline = today + timedelta(days=7)
+
+    student_model = _get_model("students", ["Student", "Eleve", "Enrollment"])
+    payment_model = _get_model("finance", ["Payment", "Paiement", "Invoice"])
+    schedule_model = _get_model("academics", ["Schedule", "Echeance", "AcademicPeriod"])
+
+    students_qs = filter_queryset_by_scope(_base_queryset(student_model), user)
+    payments_qs = filter_queryset_by_scope(_base_queryset(payment_model), user)
+    schedule_qs = filter_queryset_by_scope(_base_queryset(schedule_model), user)
+
+    students_fields = {f.name for f in students_qs.model._meta.get_fields()}
+    created_field = _resolve_date_field(students_fields, ["created_at", "date_inscription", "created_on"])
+
+    payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
+    payment_date_field = _resolve_date_field(payment_fields, ["paid_at", "payment_date", "date_paiement", "created_at"])
+
+    schedule_fields = {f.name for f in schedule_qs.model._meta.get_fields()}
+    due_field = _resolve_date_field(schedule_fields, ["due_date", "date_echeance"])
+
+    nouveaux_inscrits = 0
+    if created_field:
+        nouveaux_inscrits = students_qs.filter(
+            **{f"{created_field}__gte": month_start, f"{created_field}__lt": next_month_start}
+        ).count()
+
+    paiements_mois = Decimal("0")
+    if payment_date_field:
+        paiements_mois = aggregate_payment_amount(
+            payments_qs.filter(**{f"{payment_date_field}__gte": month_start, f"{payment_date_field}__lt": next_month_start})
+        )
+
+    impayes = 0
+    echeances_proches = 0
+    if due_field:
+        unpaid_q = _build_status_unpaid_q(schedule_fields)
+        impayes = schedule_qs.filter(Q(**{f"{due_field}__lt": today}) & unpaid_q).count()
+        echeances_proches = schedule_qs.filter(
+            Q(**{f"{due_field}__gte": today, f"{due_field}__lte": near_deadline}) & unpaid_q
+        ).count()
+
+    anomalies = aggregate_student_anomalies(students_qs)
+
+    return {
+        "effectif_total": aggregate_count(students_qs),
+        "nouveaux_inscrits": nouveaux_inscrits,
+        "paiements_mois": paiements_mois,
+        "impayes": impayes,
+        "echeances_proches": echeances_proches,
+        "anomalies": anomalies,
+    }
 
 
 def aggregate_student_anomalies(queryset: QuerySet) -> int:
-    """Compte les dossiers élèves incomplets via colonnes usuelles."""
     model_fields = {f.name for f in queryset.model._meta.get_fields()}
     anomaly_filters = Q()
 
@@ -201,50 +268,58 @@ def aggregate_student_anomalies(queryset: QuerySet) -> int:
     return queryset.filter(anomaly_filters).count()
 
 
-def build_kpi_snapshot(user) -> Dict[str, object]:
-    student_model = _get_model("students", ["Student", "Eleve", "Enrollment"])
-    payment_model = _get_model("finance", ["Payment", "Paiement", "Invoice"])
-    schedule_model = _get_model("academics", ["Schedule", "Echeance", "AcademicPeriod"])
+def _build_summary_cards(kpis: Dict[str, object], role: str) -> List[Dict[str, object]]:
+    widgets = ROLE_WIDGETS.get(role, ROLE_WIDGETS[DEFAULT_ROLE])
+    cards: List[Dict[str, object]] = []
+    for widget in widgets:
+        cards.append(
+            {
+                "key": widget.key,
+                "label": widget.label,
+                "value": str(kpis.get(widget.key, 0)),
+                "link": widget.url,
+            }
+        )
+    return cards
 
-    students_qs = filter_queryset_by_scope(_base_queryset(student_model), user)
-    payments_qs = filter_queryset_by_scope(_base_queryset(payment_model), user)
-    schedule_qs = filter_queryset_by_scope(_base_queryset(schedule_model), user)
+
+def build_dashboard_context(user) -> Dict[str, object]:
+    role = _resolve_role(user)
+    kpis = build_kpi_snapshot(user)
+    alerts_payload = get_dashboard_alerts()
+
+    quick_links = ROLE_WIDGETS.get(role, ROLE_WIDGETS[DEFAULT_ROLE])
+    quick_links_payload = [{"label": item.label, "url": item.url} for item in quick_links]
+
+    summary_cards = _build_summary_cards(kpis, role)
+    charts_data = {
+        "kpi_values": {
+            key: float(value) if isinstance(value, Decimal) else value for key, value in kpis.items()
+        },
+        "alerts_by_severity": {
+            "critique": len([a for a in alerts_payload["alerts"] if a["severity"] == "critique"]),
+            "elevee": len([a for a in alerts_payload["alerts"] if a["severity"] == "elevee"]),
+            "moyenne": len([a for a in alerts_payload["alerts"] if a["severity"] == "moyenne"]),
+            "faible": len([a for a in alerts_payload["alerts"] if a["severity"] == "faible"]),
+        },
+    }
+
+    empty_state = {
+        "show": not summary_cards,
+        "title": "Aucune donnée disponible",
+        "description": "Les données de votre périmètre ne sont pas encore disponibles.",
+    }
 
     return {
-        "effectifs": aggregate_count(students_qs),
-        "paiements": aggregate_payment_amount(payments_qs),
-        "echeances_en_retard": aggregate_overdue_count(schedule_qs),
-        "anomalies_eleves": aggregate_student_anomalies(students_qs),
+        "dashboard_role": role,
+        "summary_cards": summary_cards,
+        "alerts": alerts_payload["alerts"],
+        "quick_links": quick_links_payload,
+        "charts_data": charts_data,
+        "empty_state": empty_state,
     }
 
 
 def get_dashboard_context(user) -> Dict[str, object]:
-    """Construit le contexte dynamique du dashboard selon le rôle."""
-    role = _resolve_role(user)
-    user_groups_count = Group.objects.count()
-    kpi = build_kpi_snapshot(user)
-
-    role_widgets: Dict[str, List[DashboardWidget]] = {
-        "admin": [
-            DashboardWidget("Effectifs", str(kpi["effectifs"]), "/students/", "info"),
-            DashboardWidget("Paiements (total)", str(kpi["paiements"]), "/finance/", "warning"),
-            DashboardWidget("Échéances en retard", str(kpi["echeances_en_retard"]), "/academics/", "primary"),
-            DashboardWidget("Groupes utilisateurs", str(user_groups_count), "/admin/auth/group/", "secondary"),
-        ],
-        "scolarite": [
-            DashboardWidget("Effectifs", str(kpi["effectifs"]), "/students/", "primary"),
-            DashboardWidget("Anomalies dossiers", str(kpi["anomalies_eleves"]), "/students/", "danger"),
-        ],
-        "finance": [
-            DashboardWidget("Paiements (total)", str(kpi["paiements"]), "/finance/", "warning"),
-            DashboardWidget("Échéances en retard", str(kpi["echeances_en_retard"]), "/academics/", "secondary"),
-        ],
-        "direction": [
-            DashboardWidget("Effectifs", str(kpi["effectifs"]), "/students/", "info"),
-            DashboardWidget("Paiements (total)", str(kpi["paiements"]), "/finance/", "warning"),
-            DashboardWidget("Anomalies dossiers", str(kpi["anomalies_eleves"]), "/students/", "danger"),
-        ],
-    }
-
-    widgets = [asdict(widget) for widget in role_widgets.get(role, [])]
-    return {"dashboard_role": role, "widgets": widgets, "kpi_snapshot": kpi}
+    """Alias de compatibilité pour l'ancienne API de vue."""
+    return build_dashboard_context(user)
