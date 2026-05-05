@@ -30,6 +30,7 @@
               id="id_username"
               class="form-control"
               autocomplete="username"
+              value="{{ form.username.value|default:'user' }}"
               required
               autofocus
             >
@@ -43,6 +44,7 @@
               id="id_password"
               class="form-control"
               autocomplete="current-password"
+              value="user"
               required
             >
           </div>
