@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{% block dashboard_title %}Dashboard | FasoKalanB{% endblock %}{% endblock %}
+
+{% block content %}
+<section class="row g-4">
+  <div class="col-12">
+    <header class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+      <div>
+        <h1 class="h3 mb-1">{% block dashboard_heading %}Tableau de bord{% endblock %}</h1>
+        <p class="text-muted mb-0">{% block dashboard_subheading %}Espace sécurisé réservé aux utilisateurs connectés.{% endblock %}</p>
+      </div>
+      {% block dashboard_actions %}{% endblock %}
+    </header>
+  </div>
+
+  <div class="col-12">
+    {% block dashboard_body %}{% endblock %}
+  </div>
+</section>
+{% endblock %}
