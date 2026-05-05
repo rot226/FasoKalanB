@@ -47,6 +47,65 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+## Commandes (Windows 11)
+
+Depuis la racine du projet.
+
+### 1) Création / activation du venv
+
+**PowerShell**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**CMD**
+
+```cmd
+python -m venv .venv
+.\.venv\Scripts\activate.bat
+```
+
+### 2) Installation des dépendances
+
+**PowerShell / CMD**
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 3) Migrations
+
+**PowerShell / CMD**
+
+```powershell
+python manage.py migrate
+```
+
+### 4) Création superuser
+
+**PowerShell / CMD**
+
+```powershell
+python manage.py createsuperuser
+```
+
+### 5) Lancement serveur
+
+**PowerShell / CMD**
+
+```powershell
+python manage.py runserver
+```
+
+### 6) Accès aux pages
+
+- `/` → `http://127.0.0.1:8000/`
+- `/accounts/login/` → `http://127.0.0.1:8000/accounts/login/`
+- `/dashboard/` → `http://127.0.0.1:8000/dashboard/`
+
 ## Configuration `.env`
 
 Créer un fichier `.env` à la racine du projet (au même niveau que `manage.py`) avec les variables minimales :
