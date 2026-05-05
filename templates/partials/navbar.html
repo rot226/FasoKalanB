@@ -1,16 +1,22 @@
 <header class="border-bottom bg-white">
   <nav class="navbar navbar-expand-lg container py-2">
     <a class="navbar-brand fw-semibold" href="{% url 'core:home' %}">FasoKalanB</a>
-    <div class="ms-auto d-flex gap-2">
-      {% if user.is_authenticated %}
-        <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
-          {% csrf_token %}
-          <button class="btn btn-outline-secondary btn-sm" type="submit">Déconnexion</button>
-        </form>
-        <a class="btn btn-primary btn-sm" href="{% url 'dashboard:home' %}">Dashboard</a>
-      {% else %}
-        <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
-      {% endif %}
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Ouvrir la navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <div class="ms-auto d-grid d-lg-flex gap-2 pt-3 pt-lg-0">
+        {% if user.is_authenticated %}
+          <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
+            {% csrf_token %}
+            <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Déconnexion</button>
+          </form>
+          <a class="btn btn-primary btn-sm" href="{% url 'dashboard:home' %}">Dashboard</a>
+        {% else %}
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
+        {% endif %}
+      </div>
     </div>
   </nav>
 </header>
