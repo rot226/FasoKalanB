@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil | FasoKalanB{% endblock %}
+
+{% block content %}
+<section class="py-4 py-md-5 text-center">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <h1 class="display-5 fw-bold mb-3">Bienvenue sur FasoKalanB</h1>
+      <p class="lead text-muted mb-4">
+        Plateforme de gestion éducative moderne, conçue pour simplifier le suivi académique et administratif.
+      </p>
+      <a class="btn btn-primary btn-lg" href="{% url 'dashboard:home' %}">Accéder au tableau de bord</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
