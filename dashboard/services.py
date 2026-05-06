@@ -104,18 +104,28 @@ def _build_default_alerts() -> List[Dict[str, object]]:
     ]
 
 
-def _sort_alerts(alerts, sort_key: str, sort_dir: str):
+def _sort_alerts_by_date(alerts, sort_dir: str):
     reverse = sort_dir == "desc"
-    if sort_key == "date":
-        return sorted(alerts, key=lambda alert: alert["created_at"], reverse=reverse)
-    return sorted(
+    return sorted(alerts, key=lambda alert: alert["created_at"], reverse=reverse)
+
+
+def _sort_alerts_by_severity(alerts, sort_dir: str):
+    severity_sorted = sorted(
         alerts,
         key=lambda alert: (
             ALERT_SEVERITY_ORDER.get(alert["severity"], 99),
             alert["created_at"],
         ),
-        reverse=reverse,
     )
+    if sort_dir == "desc":
+        return severity_sorted
+    return list(reversed(severity_sorted))
+
+
+def _sort_alerts(alerts, sort_key: str, sort_dir: str):
+    if sort_key == "date":
+        return _sort_alerts_by_date(alerts, sort_dir)
+    return _sort_alerts_by_severity(alerts, sort_dir)
 
 
 def get_dashboard_alerts(sort_key: str = "criticite", sort_dir: str = "desc") -> Dict[str, object]:
