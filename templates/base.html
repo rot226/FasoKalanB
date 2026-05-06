@@ -10,51 +10,10 @@
   {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
-  <header class="border-bottom bg-white">
-    <nav class="navbar navbar-expand-lg container py-2">
-      <a class="navbar-brand fw-semibold" href="{% url 'core:home' %}">FasoKalanB</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Ouvrir la navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="mainNavbar">
-        <ul class="navbar-nav ms-auto align-items-lg-center gap-2 pt-3 pt-lg-0">
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'core:home' %}">Accueil</a>
-          </li>
-          {% if user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'accounts:password_change' %}">Changer mot de passe</a>
-            </li>
-            <li class="nav-item">
-              <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
-                {% csrf_token %}
-                <button class="btn btn-outline-secondary btn-sm" type="submit">Déconnexion</button>
-              </form>
-            </li>
-          {% else %}
-            <li class="nav-item">
-              <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
-            </li>
-          {% endif %}
-        </ul>
-      </div>
-    </nav>
-  </header>
+  {% include 'partials/navbar.html' %}
 
   <main class="container py-5 flex-grow-1">
-    {% if messages %}
-      <section class="mb-4" aria-label="Messages système">
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags|default:'info' }} mb-2" role="alert">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </section>
-    {% endif %}
+    {% include 'partials/messages.html' %}
 
     {% block content %}{% endblock %}
   </main>

@@ -6,17 +6,29 @@
     </button>
 
     <div class="collapse navbar-collapse" id="mainNavbar">
-      <div class="ms-auto d-grid d-lg-flex gap-2 pt-3 pt-lg-0">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-2 pt-3 pt-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'core:home' %}">Accueil</a>
+        </li>
         {% if user.is_authenticated %}
-          <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
-            {% csrf_token %}
-            <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Déconnexion</button>
-          </form>
-          <a class="btn btn-primary btn-sm" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard:dashboard_home' %}">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'accounts:password_change' %}">Changer mot de passe</a>
+          </li>
+          <li class="nav-item">
+            <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
+              {% csrf_token %}
+              <button class="btn btn-outline-secondary btn-sm" type="submit">Déconnexion</button>
+            </form>
+          </li>
         {% else %}
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
+          <li class="nav-item">
+            <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
+          </li>
         {% endif %}
-      </div>
+      </ul>
     </div>
   </nav>
 </header>
