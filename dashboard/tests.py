@@ -139,3 +139,31 @@ class DashboardScopeFilterTests(TestCase):
         filter_queryset_by_scope(queryset, user)
 
         queryset.filter.assert_called_once_with(tenant_id__in={7})
+
+
+class DashboardAlertsSortingTests(TestCase):
+    def _get_ordered_titles(self, sort_key: str, sort_dir: str):
+        from dashboard.services import get_dashboard_alerts
+
+        payload = get_dashboard_alerts(sort_key=sort_key, sort_dir=sort_dir)
+        return [alert["title"] for alert in payload["alerts"]]
+
+    def test_get_dashboard_alerts_sorts_by_criticality_desc(self):
+        titles = self._get_ordered_titles(sort_key="criticite", sort_dir="desc")
+
+        self.assertEqual(titles, ["Paiements en retard", "Dossiers élèves incomplets"])
+
+    def test_get_dashboard_alerts_sorts_by_criticality_asc(self):
+        titles = self._get_ordered_titles(sort_key="criticite", sort_dir="asc")
+
+        self.assertEqual(titles, ["Dossiers élèves incomplets", "Paiements en retard"])
+
+    def test_get_dashboard_alerts_sorts_by_date_desc(self):
+        titles = self._get_ordered_titles(sort_key="date", sort_dir="desc")
+
+        self.assertEqual(titles, ["Paiements en retard", "Dossiers élèves incomplets"])
+
+    def test_get_dashboard_alerts_sorts_by_date_asc(self):
+        titles = self._get_ordered_titles(sort_key="date", sort_dir="asc")
+
+        self.assertEqual(titles, ["Dossiers élèves incomplets", "Paiements en retard"])
