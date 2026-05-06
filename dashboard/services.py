@@ -159,7 +159,7 @@ def _base_queryset(model_class: Optional[type[Model]]) -> QuerySet:
 
 
 def _resolve_scope_ids(user) -> set:
-    candidate_attrs = ["school_id", "ecole_id", "tenant_id"]
+    candidate_attrs = ["school_id", "ecole_id", "campus_id", "tenant_id"]
     scope_ids = {
         getattr(user, attr)
         for attr in candidate_attrs
@@ -181,12 +181,10 @@ def filter_queryset_by_scope(queryset: QuerySet, user) -> QuerySet:
         return queryset
 
     model_fields = {f.name for f in queryset.model._meta.get_fields()}
-    if "school" in model_fields:
-        scope_ids = _resolve_scope_ids(user)
-        return queryset.filter(school_id__in=scope_ids) if scope_ids else queryset.none()
-    if "ecole" in model_fields:
-        scope_ids = _resolve_scope_ids(user)
-        return queryset.filter(ecole_id__in=scope_ids) if scope_ids else queryset.none()
+    scope_ids = _resolve_scope_ids(user)
+    for scope_field in ("school", "ecole", "campus", "tenant"):
+        if scope_field in model_fields:
+            return queryset.filter(**{f"{scope_field}_id__in": scope_ids}) if scope_ids else queryset.none()
 
     if "user" in model_fields:
         return queryset.filter(user=user)

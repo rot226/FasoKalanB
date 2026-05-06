@@ -2,6 +2,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import Mock
+
+from dashboard.services import filter_queryset_by_scope
 
 
 class DashboardHomeViewTests(TestCase):
@@ -60,3 +63,41 @@ class DashboardHomeViewTests(TestCase):
 
         self.assertContains(finance_response, "Échéances en retard")
         self.assertNotContains(finance_response, "Groupes utilisateurs")
+
+
+class DashboardScopeFilterTests(TestCase):
+    def _mock_queryset(self, fields):
+        queryset = Mock()
+        queryset.model = Mock()
+        queryset.model._meta = Mock()
+        queryset.model._meta.get_fields.return_value = [type("Field", (), {"name": name})() for name in fields]
+        queryset.filter.return_value = queryset
+        queryset.none.return_value = queryset
+        return queryset
+
+    def test_filter_queryset_by_scope_applies_school_filter(self):
+        user = get_user_model().objects.create_user("scope-user", password="test-pass-123")
+        user.school_id = 12
+        queryset = self._mock_queryset(["id", "school"])
+
+        filter_queryset_by_scope(queryset, user)
+
+        queryset.filter.assert_called_once_with(school_id__in={12})
+
+    def test_filter_queryset_by_scope_blocks_cross_school_when_no_scope(self):
+        user = get_user_model().objects.create_user("no-scope-user", password="test-pass-123")
+        queryset = self._mock_queryset(["id", "school"])
+
+        filter_queryset_by_scope(queryset, user)
+
+        queryset.none.assert_called_once()
+        queryset.filter.assert_not_called()
+
+    def test_filter_queryset_by_scope_applies_tenant_filter(self):
+        user = get_user_model().objects.create_user("tenant-user", password="test-pass-123")
+        user.tenant_id = 7
+        queryset = self._mock_queryset(["id", "tenant"])
+
+        filter_queryset_by_scope(queryset, user)
+
+        queryset.filter.assert_called_once_with(tenant_id__in={7})
