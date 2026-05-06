@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'students',
     'finance',
     'notifications',
+    # App dashboard officielle (package racine `dashboard`).
     'dashboard',
     'reports',
     'core',

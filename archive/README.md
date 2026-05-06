@@ -1,7 +1,14 @@
-# Archive technique
+# Archive du projet
 
-Ce dossier conserve des modules retirés du chargement Django.
+Ce dossier conserve uniquement de la documentation d’archivage.
 
-- `apps_dashboard_legacy/` : ancienne duplication de l'app `dashboard` (namespace `apps.dashboard`).
+## Dashboard (implémentation officielle)
 
-Convention active du projet : app racine `dashboard` (référencée dans `INSTALLED_APPS` et `config/urls.py`).
+- **Implémentation officielle active**: package racine `dashboard`.
+- Références de routage et chargement Django:
+  - `INSTALLED_APPS` -> `'dashboard'` dans `config/settings.py`
+  - `path('dashboard/', include('dashboard.urls'))` dans `config/urls.py`
+
+## Historique
+
+La duplication historique `apps.dashboard` a été retirée pour éviter toute ambiguïté d’import/routage.
