@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Dict, Iterable, List, Optional
 
 from django.apps import apps
-from django.db.models import Model, Q, QuerySet, Sum
+from django.db.models import F, Model, Q, QuerySet, Sum
 
 from students.models import (
     aggregate_new_students,
@@ -31,29 +31,43 @@ ALERT_SEVERITY_ORDER = {
 
 ROLE_WIDGETS: Dict[str, List[DashboardWidget]] = {
     "admin": [
-        DashboardWidget("effectif_total", "Effectif total", "/students/"),
+        DashboardWidget("effectif_total", "Effectifs", "/students/"),
         DashboardWidget("nouveaux_inscrits", "Nouveaux inscrits", "/students/"),
-        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
-        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("groupes_utilisateurs", "Groupes utilisateurs", "/accounts/"),
+        DashboardWidget("paiements_mois", "Paiements (total)", "/finance/"),
+        DashboardWidget("impayes", "Échéances en retard", "/finance/"),
         DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
         DashboardWidget("anomalies", "Anomalies", "/students/"),
+        DashboardWidget("classes_actives", "Classes actives", "/academics/"),
+        DashboardWidget("sessions_actives", "Sessions actives", "/academics/"),
+        DashboardWidget("evenements_imminents", "Évènements imminents", "/academics/"),
+        DashboardWidget("anomalies_planification", "Anomalies planification", "/academics/"),
     ],
     "scolarite": [
-        DashboardWidget("effectif_total", "Effectif total", "/students/"),
+        DashboardWidget("effectif_total", "Effectifs", "/students/"),
         DashboardWidget("nouveaux_inscrits", "Nouveaux inscrits", "/students/"),
+        DashboardWidget("groupes_utilisateurs", "Groupes utilisateurs", "/accounts/"),
         DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
         DashboardWidget("anomalies", "Anomalies", "/students/"),
+        DashboardWidget("classes_actives", "Classes actives", "/academics/"),
+        DashboardWidget("sessions_actives", "Sessions actives", "/academics/"),
+        DashboardWidget("evenements_imminents", "Évènements imminents", "/academics/"),
+        DashboardWidget("anomalies_planification", "Anomalies planification", "/academics/"),
     ],
     "finance": [
-        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
-        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("paiements_mois", "Paiements (total)", "/finance/"),
+        DashboardWidget("impayes", "Échéances en retard", "/finance/"),
         DashboardWidget("echeances_proches", "Échéances proches", "/academics/"),
     ],
     "direction": [
-        DashboardWidget("effectif_total", "Effectif total", "/students/"),
-        DashboardWidget("paiements_mois", "Paiements du mois", "/finance/"),
-        DashboardWidget("impayes", "Impayés", "/finance/"),
+        DashboardWidget("effectif_total", "Effectifs", "/students/"),
+        DashboardWidget("paiements_mois", "Paiements (total)", "/finance/"),
+        DashboardWidget("impayes", "Échéances en retard", "/finance/"),
         DashboardWidget("anomalies", "Anomalies", "/students/"),
+        DashboardWidget("classes_actives", "Classes actives", "/academics/"),
+        DashboardWidget("sessions_actives", "Sessions actives", "/academics/"),
+        DashboardWidget("evenements_imminents", "Évènements imminents", "/academics/"),
+        DashboardWidget("anomalies_planification", "Anomalies planification", "/academics/"),
     ],
 }
 
@@ -202,6 +216,66 @@ def _build_status_unpaid_q(model_fields: set[str]) -> Q:
     return ~Q(**{f"{status_field}__in": ["paid", "paye", "payé"]})
 
 
+
+
+def _get_academics_models() -> Dict[str, Optional[type[Model]]]:
+    return {
+        "class": _get_model("academics", ["Class", "Classe", "AcademicClass"]),
+        "session": _get_model("academics", ["Session", "AcademicSession", "CourseSession"]),
+        "calendar": _get_model("academics", ["CalendarEvent", "AcademicEvent", "Event", "Calendrier"]),
+        "result": _get_model("academics", ["Result", "ExamResult", "Grade", "Note"]),
+    }
+
+
+def _resolve_boolean_filter_fields(model_fields: set[str], candidates: list[str]) -> Optional[str]:
+    for name in candidates:
+        if name in model_fields:
+            return name
+    return None
+
+
+def build_academics_snapshot(user, today: date) -> Dict[str, int]:
+    models = _get_academics_models()
+
+    classes_qs = filter_queryset_by_scope(_base_queryset(models["class"]), user)
+    sessions_qs = filter_queryset_by_scope(_base_queryset(models["session"]), user)
+    events_qs = filter_queryset_by_scope(_base_queryset(models["calendar"]), user)
+
+    classes_fields = {f.name for f in classes_qs.model._meta.get_fields()} if models["class"] else set()
+    sessions_fields = {f.name for f in sessions_qs.model._meta.get_fields()} if models["session"] else set()
+    events_fields = {f.name for f in events_qs.model._meta.get_fields()} if models["calendar"] else set()
+
+    active_classes = classes_qs
+    class_active_field = _resolve_boolean_filter_fields(classes_fields, ["is_active", "active", "actif"])
+    if class_active_field:
+        active_classes = classes_qs.filter(**{class_active_field: True})
+
+    active_sessions = sessions_qs
+    session_active_field = _resolve_boolean_filter_fields(sessions_fields, ["is_active", "active", "actif"])
+    if session_active_field:
+        active_sessions = sessions_qs.filter(**{session_active_field: True})
+
+    event_start_field = _resolve_date_field(events_fields, ["start_date", "date_debut", "event_date", "date"])
+    event_end_field = _resolve_date_field(events_fields, ["end_date", "date_fin"])
+
+    near_window = today + timedelta(days=14)
+    imminent_events = 0
+    scheduling_anomalies = 0
+    if event_start_field:
+        imminent_events = events_qs.filter(**{f"{event_start_field}__gte": today, f"{event_start_field}__lte": near_window}).count()
+        if event_end_field:
+            scheduling_anomalies = events_qs.filter(
+                Q(**{f"{event_end_field}__isnull": True}) | Q(**{f"{event_start_field}__gt": F(event_end_field)})
+            ).count()
+
+    return {
+        "classes_actives": active_classes.count(),
+        "sessions_actives": active_sessions.count(),
+        "evenements_imminents": imminent_events,
+        "anomalies_planification": scheduling_anomalies,
+    }
+
+
 def build_kpi_snapshot(user) -> Dict[str, object]:
     today = date.today()
     month_start = today.replace(day=1)
@@ -241,6 +315,7 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
         ).count()
 
     anomalies = aggregate_student_anomalies(students_qs)
+    academics_kpis = build_academics_snapshot(user, today=today)
 
     return {
         "effectif_total": aggregate_total_students(students_qs),
@@ -251,6 +326,7 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
         "anomalies": anomalies,
         "repartition_niveaux": repartition["by_level"],
         "repartition_classes": repartition["by_class"],
+        **academics_kpis,
     }
 
 
@@ -312,9 +388,15 @@ def build_dashboard_context(user) -> Dict[str, object]:
         "description": "Les données de votre périmètre ne sont pas encore disponibles.",
     }
 
+    widgets = [
+        {"key": card["key"], "title": card["label"], "value": card["value"], "link": card["link"], "severity": "primary"}
+        for card in summary_cards
+    ]
+
     return {
         "dashboard_role": role,
         "summary_cards": summary_cards,
+        "widgets": widgets,
         "alerts": alerts_payload["alerts"],
         "quick_links": quick_links_payload,
         "charts_data": charts_data,
