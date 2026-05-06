@@ -6,7 +6,9 @@ from decimal import Decimal
 from typing import Dict, Iterable, List, Optional
 
 from django.apps import apps
-from django.db.models import F, Model, Q, QuerySet, Sum
+from django.core.cache import cache
+from django.db.models import Count, F, Model, Q, QuerySet, Sum
+from django.db.models.functions import TruncMonth
 
 from students.models import (
     aggregate_new_students,
@@ -72,6 +74,7 @@ ROLE_WIDGETS: Dict[str, List[DashboardWidget]] = {
 }
 
 DEFAULT_ROLE = "direction"
+CACHE_TIMEOUT_SECONDS = 300
 
 
 def _build_default_alerts() -> List[Dict[str, object]]:
@@ -397,6 +400,94 @@ def build_recent_activities(user, limit: int = 10) -> List[Dict[str, object]]:
     return sorted(activities, key=sort_key, reverse=True)[:limit]
 
 
+def build_minimal_timeseries(user, months: int = 6) -> Dict[str, List[Dict[str, object]]]:
+    today = date.today()
+    month_start = today.replace(day=1)
+    window_start = (month_start - timedelta(days=32 * (months - 1))).replace(day=1)
+
+    students_model = _get_model("students", ["Student", "Eleve", "Enrollment"])
+    payments_model = _get_model("finance", ["Paiement", "Payment", "Invoice"])
+
+    students_qs = filter_queryset_by_scope(_base_queryset(students_model), user)
+    payments_qs = filter_queryset_by_scope(_base_queryset(payments_model), user)
+
+    student_fields = {f.name for f in students_qs.model._meta.get_fields()}
+    payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
+
+    student_date_field = _resolve_date_field(
+        student_fields,
+        ["date_inscription", "created_at", "created_on", "enrolled_at"],
+    )
+    payment_date_field = _resolve_date_field(
+        payment_fields,
+        ["date_paiement", "payment_date", "paid_at", "created_at", "created_on"],
+    )
+    payment_amount_field = _resolve_date_field(payment_fields, ["amount", "montant"])
+
+    months_index = []
+    cursor = window_start
+    for _ in range(months):
+        months_index.append(cursor.strftime("%Y-%m"))
+        cursor = (cursor + timedelta(days=32)).replace(day=1)
+
+    inscriptions_map = {key: 0 for key in months_index}
+    paiements_map = {key: Decimal("0") for key in months_index}
+
+    if student_date_field:
+        student_rows = (
+            students_qs.filter(**{f"{student_date_field}__gte": window_start})
+            .annotate(month=TruncMonth(student_date_field))
+            .values("month")
+            .annotate(total=Count("pk"))
+            .order_by("month")
+        )
+        for row in student_rows:
+            month = row["month"]
+            if month is not None:
+                inscriptions_map[month.strftime("%Y-%m")] = row["total"] or 0
+
+    if payment_date_field and payment_amount_field:
+        payment_rows = (
+            payments_qs.filter(**{f"{payment_date_field}__gte": window_start})
+            .annotate(month=TruncMonth(payment_date_field))
+            .values("month")
+            .annotate(total=Sum(payment_amount_field))
+            .order_by("month")
+        )
+        for row in payment_rows:
+            month = row["month"]
+            if month is not None:
+                paiements_map[month.strftime("%Y-%m")] = row["total"] or Decimal("0")
+
+    inscriptions_series = []
+    paiements_series = []
+    max_inscriptions = max(inscriptions_map.values()) if inscriptions_map else 0
+    max_paiements = max(paiements_map.values()) if paiements_map else Decimal("0")
+    for key in months_index:
+        label = datetime.strptime(key, "%Y-%m").strftime("%m/%Y")
+        ins_value = inscriptions_map[key]
+        pay_value = paiements_map[key]
+        inscriptions_series.append(
+            {
+                "month": label,
+                "value": int(ins_value),
+                "width_pct": int((ins_value / max_inscriptions) * 100) if max_inscriptions else 0,
+            }
+        )
+        paiements_series.append(
+            {
+                "month": label,
+                "value": float(pay_value),
+                "width_pct": int((pay_value / max_paiements) * 100) if max_paiements else 0,
+            }
+        )
+
+    return {
+        "inscriptions_par_mois": inscriptions_series,
+        "paiements_par_mois": paiements_series,
+    }
+
+
 def aggregate_student_anomalies(queryset: QuerySet) -> int:
     model_fields = {f.name for f in queryset.model._meta.get_fields()}
     anomaly_filters = Q()
@@ -429,6 +520,11 @@ def _build_summary_cards(kpis: Dict[str, object], role: str) -> List[Dict[str, o
 
 
 def build_dashboard_context(user) -> Dict[str, object]:
+    cache_key = f"dashboard:context:v1:user:{user.pk}"
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return cached_payload
+
     role = _resolve_role(user)
     kpis = build_kpi_snapshot(user)
     alerts_payload = get_dashboard_alerts()
@@ -460,8 +556,9 @@ def build_dashboard_context(user) -> Dict[str, object]:
         for card in summary_cards
     ]
     recent_activities = build_recent_activities(user, limit=10)
+    timeseries = build_minimal_timeseries(user, months=6)
 
-    return {
+    payload = {
         "dashboard_role": role,
         "summary_cards": summary_cards,
         "widgets": widgets,
@@ -470,7 +567,10 @@ def build_dashboard_context(user) -> Dict[str, object]:
         "charts_data": charts_data,
         "empty_state": empty_state,
         "recent_activities": recent_activities,
+        "timeseries": timeseries,
     }
+    cache.set(cache_key, payload, CACHE_TIMEOUT_SECONDS)
+    return payload
 
 
 def get_dashboard_context(user) -> Dict[str, object]:

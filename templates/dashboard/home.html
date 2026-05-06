@@ -207,4 +207,52 @@
       {% endif %}
     </div>
   </div>
+
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Séries temporelles (v1)</h2>
+      <div class="row g-4">
+        <div class="col-12 col-lg-6">
+          <h3 class="h6">Inscriptions par mois</h3>
+          {% if timeseries.inscriptions_par_mois %}
+            <ul class="list-unstyled mb-0">
+              {% for point in timeseries.inscriptions_par_mois %}
+                <li class="mb-2">
+                  <div class="d-flex justify-content-between small">
+                    <span>{{ point.month }}</span>
+                    <strong>{{ point.value }}</strong>
+                  </div>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-primary" style="width: {{ point.width_pct }}%"></div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Aucune donnée d'inscription disponible.</p>
+          {% endif %}
+        </div>
+        <div class="col-12 col-lg-6">
+          <h3 class="h6">Paiements par mois</h3>
+          {% if timeseries.paiements_par_mois %}
+            <ul class="list-unstyled mb-0">
+              {% for point in timeseries.paiements_par_mois %}
+                <li class="mb-2">
+                  <div class="d-flex justify-content-between small">
+                    <span>{{ point.month }}</span>
+                    <strong>{{ point.value }}</strong>
+                  </div>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-success" style="width: {{ point.width_pct }}%"></div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Aucune donnée de paiement disponible.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}
