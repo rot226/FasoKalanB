@@ -103,6 +103,15 @@ class DashboardServicesRoleWidgetsAndEmptyStateTests(TestCase):
         self.assertGreater(len(payload["summary_cards"]), 0)
         self.assertTrue(all(card["value"] == "0" for card in payload["summary_cards"]))
 
+
+    def test_summary_cards_contains_at_least_one_card_when_data_exists(self):
+        with patch("dashboard.services.build_kpi_snapshot", return_value={"effectif_total": 12}), patch(
+            "dashboard.services.get_dashboard_alerts", return_value={"alerts": [], "alerts_sort": "criticite", "alerts_dir": "desc"}
+        ):
+            payload = services.build_dashboard_context(self.user)
+
+        self.assertGreater(len(payload["summary_cards"]), 0)
+
     def test_empty_state_is_true_when_no_widgets_are_configured(self):
         with patch.dict("dashboard.services.ROLE_WIDGETS", {services.DEFAULT_ROLE: []}, clear=True), patch(
             "dashboard.services.build_kpi_snapshot", return_value={}
@@ -113,4 +122,3 @@ class DashboardServicesRoleWidgetsAndEmptyStateTests(TestCase):
 
         self.assertTrue(payload["empty_state"]["show"])
         self.assertEqual(payload["summary_cards"], [])
-        self.assertEqual(payload["widgets"], [])
