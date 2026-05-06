@@ -8,6 +8,12 @@ from typing import Dict, Iterable, List, Optional
 from django.apps import apps
 from django.db.models import Model, Q, QuerySet, Sum
 
+from students.models import (
+    aggregate_new_students,
+    aggregate_students_by_level_and_class,
+    aggregate_total_students,
+)
+
 
 @dataclass(frozen=True)
 class DashboardWidget:
@@ -210,20 +216,14 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
     payments_qs = filter_queryset_by_scope(_base_queryset(payment_model), user)
     schedule_qs = filter_queryset_by_scope(_base_queryset(schedule_model), user)
 
-    students_fields = {f.name for f in students_qs.model._meta.get_fields()}
-    created_field = _resolve_date_field(students_fields, ["created_at", "date_inscription", "created_on"])
-
     payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
     payment_date_field = _resolve_date_field(payment_fields, ["paid_at", "payment_date", "date_paiement", "created_at"])
 
     schedule_fields = {f.name for f in schedule_qs.model._meta.get_fields()}
     due_field = _resolve_date_field(schedule_fields, ["due_date", "date_echeance"])
 
-    nouveaux_inscrits = 0
-    if created_field:
-        nouveaux_inscrits = students_qs.filter(
-            **{f"{created_field}__gte": month_start, f"{created_field}__lt": next_month_start}
-        ).count()
+    nouveaux_inscrits = aggregate_new_students(students_qs, today=today)
+    repartition = aggregate_students_by_level_and_class(students_qs)
 
     paiements_mois = Decimal("0")
     if payment_date_field:
@@ -243,12 +243,14 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
     anomalies = aggregate_student_anomalies(students_qs)
 
     return {
-        "effectif_total": aggregate_count(students_qs),
+        "effectif_total": aggregate_total_students(students_qs),
         "nouveaux_inscrits": nouveaux_inscrits,
         "paiements_mois": paiements_mois,
         "impayes": impayes,
         "echeances_proches": echeances_proches,
         "anomalies": anomalies,
+        "repartition_niveaux": repartition["by_level"],
+        "repartition_classes": repartition["by_class"],
     }
 
 
