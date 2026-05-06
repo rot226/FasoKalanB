@@ -9,6 +9,7 @@ from django.shortcuts import render
 from .services import (
     DEFAULT_ROLE,
     ROLE_WIDGETS,
+    _resolve_role,
     build_dashboard_context,
     build_secondary_dashboard_context,
     get_dashboard_alerts,
@@ -25,17 +26,9 @@ def dashboard_home(request):
     if not user.is_active:
         return HttpResponseForbidden("Compte inactif.")
 
-    role = "admin" if (user.is_superuser or user.is_staff) else None
-    if role is None:
-        known_roles = set(ROLE_WIDGETS.keys())
-        user_roles = set(user.groups.values_list("name", flat=True))
-        if not user_roles:
-            role = DEFAULT_ROLE
-        else:
-            intersection = known_roles.intersection(user_roles)
-            role = next(iter(intersection), None)
+    role = _resolve_role(user)
 
-    if role is None:
+    if role not in ROLE_WIDGETS and role != DEFAULT_ROLE:
         return HttpResponseForbidden("Rôle utilisateur non reconnu.")
 
     try:
