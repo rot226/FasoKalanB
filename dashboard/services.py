@@ -75,6 +75,9 @@ ROLE_WIDGETS: Dict[str, List[DashboardWidget]] = {
 
 DEFAULT_ROLE = "direction"
 CACHE_TIMEOUT_SECONDS = 300
+CRITICAL_CACHE_TIMEOUT_SECONDS = 120
+SECONDARY_CACHE_TIMEOUT_SECONDS = 180
+RECENT_ACTIVITIES_CACHE_TIMEOUT_SECONDS = 60
 
 
 def _build_default_alerts() -> List[Dict[str, object]]:
@@ -520,13 +523,17 @@ def _build_summary_cards(kpis: Dict[str, object], role: str) -> List[Dict[str, o
 
 
 def build_dashboard_context(user) -> Dict[str, object]:
-    cache_key = f"dashboard:context:v1:user:{user.pk}"
+    cache_key = f"dashboard:critical:v1:user:{user.pk}"
     cached_payload = cache.get(cache_key)
     if cached_payload is not None:
         return cached_payload
 
     role = _resolve_role(user)
-    kpis = build_kpi_snapshot(user)
+    kpis_cache_key = f"dashboard:kpis:v1:user:{user.pk}"
+    kpis = cache.get(kpis_cache_key)
+    if kpis is None:
+        kpis = build_kpi_snapshot(user)
+        cache.set(kpis_cache_key, kpis, CRITICAL_CACHE_TIMEOUT_SECONDS)
     alerts_payload = get_dashboard_alerts()
 
     quick_links = ROLE_WIDGETS.get(role, ROLE_WIDGETS[DEFAULT_ROLE])
@@ -555,21 +562,45 @@ def build_dashboard_context(user) -> Dict[str, object]:
         {"key": card["key"], "title": card["label"], "value": card["value"], "link": card["link"], "severity": "primary"}
         for card in summary_cards
     ]
-    recent_activities = build_recent_activities(user, limit=10)
-    timeseries = build_minimal_timeseries(user, months=6)
 
     payload = {
         "dashboard_role": role,
         "summary_cards": summary_cards,
         "widgets": widgets,
         "alerts": alerts_payload["alerts"],
+        "alerts_sort": alerts_payload["alerts_sort"],
+        "alerts_dir": alerts_payload["alerts_dir"],
         "quick_links": quick_links_payload,
         "charts_data": charts_data,
         "empty_state": empty_state,
+    }
+    cache.set(cache_key, payload, CACHE_TIMEOUT_SECONDS)
+    return payload
+
+
+def build_secondary_dashboard_context(user) -> Dict[str, object]:
+    cache_key = f"dashboard:secondary:v1:user:{user.pk}"
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return cached_payload
+
+    activities_key = f"dashboard:activities:v1:user:{user.pk}"
+    recent_activities = cache.get(activities_key)
+    if recent_activities is None:
+        recent_activities = build_recent_activities(user, limit=10)
+        cache.set(activities_key, recent_activities, RECENT_ACTIVITIES_CACHE_TIMEOUT_SECONDS)
+
+    timeseries_key = f"dashboard:timeseries:v1:user:{user.pk}"
+    timeseries = cache.get(timeseries_key)
+    if timeseries is None:
+        timeseries = build_minimal_timeseries(user, months=6)
+        cache.set(timeseries_key, timeseries, SECONDARY_CACHE_TIMEOUT_SECONDS)
+
+    payload = {
         "recent_activities": recent_activities,
         "timeseries": timeseries,
     }
-    cache.set(cache_key, payload, CACHE_TIMEOUT_SECONDS)
+    cache.set(cache_key, payload, SECONDARY_CACHE_TIMEOUT_SECONDS)
     return payload
 
 
