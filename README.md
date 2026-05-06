@@ -222,6 +222,10 @@ Cette section décrit une **orientation d’architecture** pour préparer une fu
 
 Le dashboard complet dépend des US-DAS-01/02.
 
+Décision d'architecture active : l'app canonique est `dashboard` (package racine), avec `'dashboard'` dans `INSTALLED_APPS` et `include('dashboard.urls')` dans `config/urls.py`.
+
+Voir aussi : `docs/architecture-dashboard.md` pour les garde-fous contre la réintroduction du doublon `apps.dashboard`.
+
 ## Dépannage — dashboard vide
 
 Checklist rapide :
