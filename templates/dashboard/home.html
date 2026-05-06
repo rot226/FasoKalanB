@@ -108,6 +108,54 @@
     </div>
   </div>
 
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Accès rapide aux modules</h2>
+      <div class="row g-3">
+        {% if perms.students %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <a href="{% url 'admin:app_list' 'students' %}" class="btn btn-outline-primary w-100 h-100 d-flex align-items-center gap-2 justify-content-center py-3" aria-label="Accéder au module Students">
+              <span aria-hidden="true">🎓</span>
+              <span class="fw-semibold">Students</span>
+            </a>
+          </div>
+        {% endif %}
+
+        {% if perms.finance %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <a href="{% url 'admin:app_list' 'finance' %}" class="btn btn-outline-primary w-100 h-100 d-flex align-items-center gap-2 justify-content-center py-3" aria-label="Accéder au module Finance">
+              <span aria-hidden="true">💳</span>
+              <span class="fw-semibold">Finance</span>
+            </a>
+          </div>
+        {% endif %}
+
+        {% if perms.accounts %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <a href="{% url 'admin:app_list' 'accounts' %}" class="btn btn-outline-primary w-100 h-100 d-flex align-items-center gap-2 justify-content-center py-3" aria-label="Accéder au module Accounts">
+              <span aria-hidden="true">👤</span>
+              <span class="fw-semibold">Accounts</span>
+            </a>
+          </div>
+        {% endif %}
+
+        {% if perms.reports %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <a href="{% url 'admin:app_list' 'reports' %}" class="btn btn-outline-primary w-100 h-100 d-flex align-items-center gap-2 justify-content-center py-3" aria-label="Accéder au module Reports">
+              <span aria-hidden="true">📊</span>
+              <span class="fw-semibold">Reports</span>
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if not perms.students and not perms.finance and not perms.accounts and not perms.reports %}
+        <p class="text-muted mb-0 mt-3">Aucun module supplémentaire disponible pour votre profil.</p>
+      {% endif %}
+    </div>
+  </div>
+
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <h2 class="h5 mb-3">Raccourcis modules</h2>
