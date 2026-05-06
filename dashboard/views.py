@@ -41,6 +41,8 @@ def dashboard_home(request):
             )
         )
         context["summary_cards"] = context.get("summary_cards") or context.get("widgets", [])
+        context["current_user"] = request.user
+        context["module_errors"] = context.get("module_errors") or []
         context["secondary_data_url"] = "/dashboard/secondary/"
         context["server_render_time_ms"] = round((time.perf_counter() - start_perf) * 1000, 2)
         logger.info(
@@ -61,6 +63,8 @@ def dashboard_home(request):
         )
         context = {
             "dashboard_role": role,
+            "current_user": request.user,
+            "module_errors": [],
             "summary_cards": [],
             "quick_links": [],
             "charts_data": {"kpi_values": {}, "alerts_by_severity": {}},

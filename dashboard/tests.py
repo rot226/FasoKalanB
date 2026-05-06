@@ -78,6 +78,18 @@ class DashboardHomeViewTests(TestCase):
         self.assertContains(finance_response, "Échéances en retard")
         self.assertNotContains(finance_response, "Groupes utilisateurs")
 
+
+    def test_dashboard_render_has_no_template_error_and_shows_welcome_block(self):
+        user = self._create_user_with_role("render-user", "direction")
+        self.client.force_login(user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "TemplateSyntaxError")
+        self.assertContains(response, "Bienvenue")
+        self.assertContains(response, f"Bonjour {user.username}")
+
     def test_dashboard_is_not_empty_for_authenticated_user(self):
         user = self._create_user_with_role("not-empty-user", "direction")
         self.client.force_login(user)
