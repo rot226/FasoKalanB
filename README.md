@@ -8,6 +8,8 @@
 
 - Python **3.11+**
 - `pip`
+- Un terminal (PowerShell recommandé sous Windows 11)
+- Base de données locale prête (SQLite par défaut dans ce projet)
 
 ## Installation
 
@@ -77,6 +79,17 @@ python manage.py bootstrap_dev
 
 La commande `bootstrap_dev` est la **seule méthode officielle documentée** pour initialiser l'admin local de démonstration.
 
+## Création de données de démonstration
+
+Pour créer un jeu de données local de démonstration :
+
+```bash
+python manage.py migrate
+python manage.py bootstrap_dev
+```
+
+Cette commande prépare les données minimales nécessaires pour tester l’authentification et l’accès au dashboard en local.
+
 
 ### Mécanisme alternatif (non officiel)
 
@@ -106,6 +119,26 @@ Pour l'environnement local de développement, le compte d'administration initial
 
 - **Identifiant par défaut** : `admin`
 - **Mot de passe par défaut** : `admin` (local uniquement)
+
+## Rôles de test
+
+Après exécution de `bootstrap_dev`, utilisez les rôles de test suivants :
+
+- **Admin** : accès global à l’administration Django et aux écrans applicatifs.
+- **Utilisateur connecté (non staff)** : vérification des écrans accessibles hors administration.
+
+> Si vous avez besoin d’autres rôles métier (direction, enseignant, comptabilité, etc.), créez-les via l’admin Django selon vos règles de permissions cibles.
+
+## Ce qui doit apparaître après login
+
+Après une connexion réussie :
+
+1. Redirection vers l’accueil applicatif / dashboard.
+2. Affichage du layout principal (menu, zone centrale, messages flash éventuels).
+3. Présence de contenus dashboard (cartes/KPI/listes) si les données de démo ont bien été créées.
+4. Pour un compte staff/admin, accès possible à `/admin/`.
+
+Si l’un de ces éléments est absent, consultez la section **Dépannage — dashboard vide** ci-dessous.
 
 ⚠️ **Obligation de sécurité** : ce mot de passe doit être changé immédiatement après la première connexion, même en environnement local.
 
@@ -188,6 +221,18 @@ Cette section décrit une **orientation d’architecture** pour préparer une fu
 ## Note dashboard
 
 Le dashboard complet dépend des US-DAS-01/02.
+
+## Dépannage — dashboard vide
+
+Checklist rapide :
+
+1. Vérifier que les migrations sont appliquées : `python manage.py migrate`
+2. Rejouer les données de démo : `python manage.py bootstrap_dev`
+3. Vérifier le compte utilisé (connecté et actif).
+4. Vérifier le rôle/permissions (staff, groupes, droits).
+5. Ouvrir `/admin/` pour confirmer que des données existent réellement.
+6. Redémarrer le serveur : `python manage.py runserver`
+7. Actualiser la session (déconnexion/reconnexion).
 
 ## Prochaine étape
 
