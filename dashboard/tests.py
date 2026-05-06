@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from dashboard.services import filter_queryset_by_scope
 
@@ -101,6 +101,24 @@ class DashboardHomeViewTests(TestCase):
         self.assertContains(response, "Session active")
         self.assertNotContains(response, "<body></body>", html=False)
         self.assertContains(response, "dashboard-secondary-content")
+
+
+class DashboardSecondaryViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("dashboard:dashboard_secondary")
+        self.user = get_user_model().objects.create_user(
+            username="secondary-user",
+            password="test-pass-123",
+        )
+        self.client.force_login(self.user)
+
+    @patch("dashboard.views.build_secondary_dashboard_context", side_effect=ValueError("backend controlled"))
+    def test_secondary_view_returns_explicit_fragment_on_controlled_error(self, _mocked_builder):
+        response = self.client.get(self.url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+        self.assertEqual(response.status_code, 503)
+        self.assertContains(response, "Section secondaire indisponible", status_code=503)
+        self.assertContains(response, "Données secondaires indisponibles temporairement", status_code=503)
 
 
 class DashboardScopeFilterTests(TestCase):

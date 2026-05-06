@@ -85,14 +85,25 @@ def dashboard_home(request):
 @login_required
 def dashboard_secondary(request):
     start_perf = time.perf_counter()
-    payload = build_secondary_dashboard_context(request.user)
-    duration_ms = round((time.perf_counter() - start_perf) * 1000, 2)
-    logger.info("dashboard.secondary_render user=%s duration_ms=%.2f", request.user.pk, duration_ms)
-    return render(
-        request,
-        "dashboard/partials/secondary_content.html",
-        {
-            **payload,
-            "secondary_render_time_ms": duration_ms,
-        },
-    )
+    try:
+        payload = build_secondary_dashboard_context(request.user)
+        duration_ms = round((time.perf_counter() - start_perf) * 1000, 2)
+        logger.info("dashboard.secondary_render user=%s duration_ms=%.2f", request.user.pk, duration_ms)
+        return render(
+            request,
+            "dashboard/partials/secondary_content.html",
+            {
+                **payload,
+                "secondary_render_time_ms": duration_ms,
+            },
+        )
+    except ValueError:
+        logger.warning(
+            "dashboard.secondary_controlled_error user=%s", request.user.pk, exc_info=True
+        )
+        return render(
+            request,
+            "dashboard/partials/secondary_error.html",
+            {"secondary_error_reason": "Données secondaires indisponibles temporairement."},
+            status=503,
+        )

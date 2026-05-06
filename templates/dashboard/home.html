@@ -187,13 +187,25 @@
         const response = await fetch(container.dataset.secondaryUrl, {
           headers: { "X-Requested-With": "XMLHttpRequest" }
         });
+
+        if (!response.ok) {
+          throw new Error(`secondary-fetch-failed:${response.status}`);
+        }
+
         const html = await response.text();
         container.innerHTML = html;
       } catch (error) {
+        const isControlledBackendError =
+          error instanceof Error && error.message.includes("secondary-fetch-failed:503");
+
+        const fallbackMessage = isControlledBackendError
+          ? "Les données secondaires sont temporairement indisponibles côté serveur."
+          : "Impossible de charger les données secondaires pour le moment.";
+
         container.innerHTML = `
           <div class="card border-0 shadow-sm mt-4">
             <div class="card-body text-muted">
-              Impossible de charger les données secondaires pour le moment.
+              ${fallbackMessage} Veuillez réessayer dans quelques instants.
             </div>
           </div>
         `;
