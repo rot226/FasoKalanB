@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+import logging
 from typing import Dict, Iterable, List, Optional
 
 from django.apps import apps
@@ -78,6 +79,8 @@ CACHE_TIMEOUT_SECONDS = 300
 CRITICAL_CACHE_TIMEOUT_SECONDS = 120
 SECONDARY_CACHE_TIMEOUT_SECONDS = 180
 RECENT_ACTIVITIES_CACHE_TIMEOUT_SECONDS = 60
+
+logger = logging.getLogger(__name__)
 
 
 def _build_default_alerts() -> List[Dict[str, object]]:
@@ -290,48 +293,72 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
     payment_model = _get_model("finance", ["Payment", "Paiement", "Invoice"])
     schedule_model = _get_model("academics", ["Schedule", "Echeance", "AcademicPeriod"])
 
-    students_qs = filter_queryset_by_scope(_base_queryset(student_model), user)
-    payments_qs = filter_queryset_by_scope(_base_queryset(payment_model), user)
-    schedule_qs = filter_queryset_by_scope(_base_queryset(schedule_model), user)
-
-    payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
-    payment_date_field = _resolve_date_field(payment_fields, ["paid_at", "payment_date", "date_paiement", "created_at"])
-
-    schedule_fields = {f.name for f in schedule_qs.model._meta.get_fields()}
-    due_field = _resolve_date_field(schedule_fields, ["due_date", "date_echeance"])
-
-    nouveaux_inscrits = aggregate_new_students(students_qs, today=today)
-    repartition = aggregate_students_by_level_and_class(students_qs)
-
-    paiements_mois = Decimal("0")
-    if payment_date_field:
-        paiements_mois = aggregate_payment_amount(
-            payments_qs.filter(**{f"{payment_date_field}__gte": month_start, f"{payment_date_field}__lt": next_month_start})
-        )
-
-    impayes = 0
-    echeances_proches = 0
-    if due_field:
-        unpaid_q = _build_status_unpaid_q(schedule_fields)
-        impayes = schedule_qs.filter(Q(**{f"{due_field}__lt": today}) & unpaid_q).count()
-        echeances_proches = schedule_qs.filter(
-            Q(**{f"{due_field}__gte": today, f"{due_field}__lte": near_deadline}) & unpaid_q
-        ).count()
-
-    anomalies = aggregate_student_anomalies(students_qs)
-    academics_kpis = build_academics_snapshot(user, today=today)
-
-    return {
-        "effectif_total": aggregate_total_students(students_qs),
-        "nouveaux_inscrits": nouveaux_inscrits,
-        "paiements_mois": paiements_mois,
-        "impayes": impayes,
-        "echeances_proches": echeances_proches,
-        "anomalies": anomalies,
-        "repartition_niveaux": repartition["by_level"],
-        "repartition_classes": repartition["by_class"],
-        **academics_kpis,
+    kpis: Dict[str, object] = {
+        "effectif_total": 0,
+        "nouveaux_inscrits": 0,
+        "paiements_mois": Decimal("0"),
+        "impayes": 0,
+        "echeances_proches": 0,
+        "anomalies": 0,
+        "repartition_niveaux": [],
+        "repartition_classes": [],
+        "classes_actives": 0,
+        "sessions_actives": 0,
+        "evenements_imminents": 0,
+        "anomalies_planification": 0,
+        "module_errors": [],
     }
+
+    try:
+        students_qs = filter_queryset_by_scope(_base_queryset(student_model), user)
+        repartition = aggregate_students_by_level_and_class(students_qs)
+        kpis.update(
+            {
+                "effectif_total": aggregate_total_students(students_qs),
+                "nouveaux_inscrits": aggregate_new_students(students_qs, today=today),
+                "anomalies": aggregate_student_anomalies(students_qs),
+                "repartition_niveaux": repartition["by_level"],
+                "repartition_classes": repartition["by_class"],
+            }
+        )
+    except Exception:
+        logger.exception("dashboard.collect.students.failed user=%s", user.pk)
+        kpis["module_errors"].append("students")
+
+    try:
+        payments_qs = filter_queryset_by_scope(_base_queryset(payment_model), user)
+        payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
+        payment_date_field = _resolve_date_field(payment_fields, ["paid_at", "payment_date", "date_paiement", "created_at"])
+        if payment_date_field:
+            kpis["paiements_mois"] = aggregate_payment_amount(
+                payments_qs.filter(**{f"{payment_date_field}__gte": month_start, f"{payment_date_field}__lt": next_month_start})
+            )
+    except Exception:
+        logger.exception("dashboard.collect.finance.failed user=%s", user.pk)
+        kpis["module_errors"].append("finance")
+
+    try:
+        schedule_qs = filter_queryset_by_scope(_base_queryset(schedule_model), user)
+        schedule_fields = {f.name for f in schedule_qs.model._meta.get_fields()}
+        due_field = _resolve_date_field(schedule_fields, ["due_date", "date_echeance"])
+        if due_field:
+            unpaid_q = _build_status_unpaid_q(schedule_fields)
+            kpis["impayes"] = schedule_qs.filter(Q(**{f"{due_field}__lt": today}) & unpaid_q).count()
+            kpis["echeances_proches"] = schedule_qs.filter(
+                Q(**{f"{due_field}__gte": today, f"{due_field}__lte": near_deadline}) & unpaid_q
+            ).count()
+    except Exception:
+        logger.exception("dashboard.collect.finance_schedule.failed user=%s", user.pk)
+        if "finance" not in kpis["module_errors"]:
+            kpis["module_errors"].append("finance")
+
+    try:
+        kpis.update(build_academics_snapshot(user, today=today))
+    except Exception:
+        logger.exception("dashboard.collect.academics.failed user=%s", user.pk)
+        kpis["module_errors"].append("academics")
+
+    return kpis
 
 
 def build_recent_activities(user, limit: int = 10) -> List[Dict[str, object]]:
@@ -571,6 +598,7 @@ def build_dashboard_context(user) -> Dict[str, object]:
         "quick_links": quick_links_payload,
         "charts_data": charts_data,
         "empty_state": empty_state,
+        "module_errors": kpis.get("module_errors", []),
     }
     cache.set(cache_key, payload, CACHE_TIMEOUT_SECONDS)
     return payload

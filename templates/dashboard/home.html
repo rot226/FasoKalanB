@@ -25,6 +25,17 @@
     </div>
   </div>
 
+  {% if module_errors %}
+    <div class="alert alert-warning" role="alert">
+      <p class="mb-1 fw-semibold">Certaines données sont momentanément indisponibles.</p>
+      <p class="mb-0">
+        Le dashboard reste affiché avec les données disponibles.
+        Modules concernés :
+        {{ module_errors|join:", " }}.
+      </p>
+    </div>
+  {% endif %}
+
   <div id="kpi" class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
