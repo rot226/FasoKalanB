@@ -1,7 +1,7 @@
 {% if messages %}
   <section class="mb-4" aria-label="Messages système">
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} mb-2" role="alert">
+      <div class="alert {% if 'error' in message.tags or 'danger' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %} mb-2" role="alert">
         {{ message }}
       </div>
     {% endfor %}
