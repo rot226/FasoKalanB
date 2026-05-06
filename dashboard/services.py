@@ -583,15 +583,9 @@ def build_dashboard_context(user) -> Dict[str, object]:
         "description": "Les données de votre périmètre ne sont pas encore disponibles.",
     }
 
-    widgets = [
-        {"key": card["key"], "title": card["label"], "value": card["value"], "link": card["link"], "severity": "primary"}
-        for card in summary_cards
-    ]
-
     payload = {
         "dashboard_role": role,
         "summary_cards": summary_cards,
-        "widgets": widgets,
         "alerts": alerts_payload["alerts"],
         "alerts_sort": alerts_payload["alerts_sort"],
         "alerts_dir": alerts_payload["alerts_dir"],
