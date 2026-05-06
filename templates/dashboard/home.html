@@ -175,23 +175,34 @@
 
   <div id="activite-recente" class="card border-0 shadow-sm">
     <div class="card-body">
-      <h2 class="h5 mb-3">Activité récente</h2>
-      {% if alerts %}
-        <ul class="list-group list-group-flush">
-          {% for alert in alerts|slice:":5" %}
-            <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
-              <div>
-                <p class="mb-1 fw-semibold">{{ alert.title }}</p>
-                <p class="mb-0 text-muted small">{{ alert.created_at_label }} · {{ alert.scope }}</p>
-              </div>
-              <span class="badge text-bg-light text-capitalize">{{ alert.severity }}</span>
-            </li>
-          {% endfor %}
-        </ul>
+      <h2 class="h5 mb-3">Dernières activités</h2>
+      {% if recent_activities %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Acteur</th>
+                <th>Date</th>
+                <th>Détail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for activity in recent_activities %}
+                <tr>
+                  <td>{{ activity.type }}</td>
+                  <td>{{ activity.acteur }}</td>
+                  <td>{{ activity.date|date:"d/m/Y H:i" }}</td>
+                  <td><a href="{{ activity.detail_url }}" class="btn btn-link btn-sm p-0">{{ activity.detail_label }}</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% else %}
         <div class="py-3 text-center text-muted">
-          <p class="mb-1 fw-semibold">Aucune activité récente</p>
-          <p class="mb-0">Aucune donnée ce mois-ci.</p>
+          <p class="mb-1 fw-semibold">Aucune activité récente visible</p>
+          <p class="mb-0">Aucun événement Students/Finance n'est disponible pour votre périmètre.</p>
         </div>
       {% endif %}
     </div>

@@ -330,6 +330,73 @@ def build_kpi_snapshot(user) -> Dict[str, object]:
     }
 
 
+def build_recent_activities(user, limit: int = 10) -> List[Dict[str, object]]:
+    students_model = _get_model("students", ["Student", "Eleve", "StudentProfile"])
+    payments_model = _get_model("finance", ["Paiement", "Payment"])
+
+    activities: List[Dict[str, object]] = []
+
+    if students_model is not None:
+        students_qs = filter_queryset_by_scope(_base_queryset(students_model), user)
+        student_fields = {f.name for f in students_qs.model._meta.get_fields()}
+        student_date_field = _resolve_date_field(
+            student_fields,
+            ["date_inscription", "created_at", "created_on", "enrolled_at"],
+        )
+        student_actor_field = _resolve_date_field(
+            student_fields,
+            ["full_name", "nom_complet", "name", "nom", "matricule", "registration_number"],
+        )
+
+        if student_date_field:
+            for student in students_qs.order_by(F(student_date_field).desc(nulls_last=True), "-pk")[:limit]:
+                actor_value = getattr(student, student_actor_field, None) if student_actor_field else None
+                activities.append(
+                    {
+                        "type": "Inscription",
+                        "acteur": str(actor_value or student),
+                        "date": getattr(student, student_date_field),
+                        "detail_url": "/students/",
+                        "detail_label": "Ouvrir Students",
+                    }
+                )
+
+    if payments_model is not None:
+        payments_qs = filter_queryset_by_scope(_base_queryset(payments_model), user)
+        payment_fields = {f.name for f in payments_qs.model._meta.get_fields()}
+        payment_date_field = _resolve_date_field(
+            payment_fields,
+            ["date_paiement", "payment_date", "date", "created_at", "created_on"],
+        )
+        payment_actor_field = _resolve_date_field(
+            payment_fields,
+            ["reference_operation", "reference", "client_nom", "payer_name"],
+        )
+
+        if payment_date_field:
+            for payment in payments_qs.order_by(F(payment_date_field).desc(nulls_last=True), "-pk")[:limit]:
+                actor_value = getattr(payment, payment_actor_field, None) if payment_actor_field else None
+                activities.append(
+                    {
+                        "type": "Paiement",
+                        "acteur": str(actor_value or payment),
+                        "date": getattr(payment, payment_date_field),
+                        "detail_url": "/finance/",
+                        "detail_label": "Ouvrir Finance",
+                    }
+                )
+
+    def sort_key(item: Dict[str, object]):
+        value = item.get("date")
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime.combine(value, datetime.min.time())
+        return datetime.min
+
+    return sorted(activities, key=sort_key, reverse=True)[:limit]
+
+
 def aggregate_student_anomalies(queryset: QuerySet) -> int:
     model_fields = {f.name for f in queryset.model._meta.get_fields()}
     anomaly_filters = Q()
@@ -392,6 +459,7 @@ def build_dashboard_context(user) -> Dict[str, object]:
         {"key": card["key"], "title": card["label"], "value": card["value"], "link": card["link"], "severity": "primary"}
         for card in summary_cards
     ]
+    recent_activities = build_recent_activities(user, limit=10)
 
     return {
         "dashboard_role": role,
@@ -401,6 +469,7 @@ def build_dashboard_context(user) -> Dict[str, object]:
         "quick_links": quick_links_payload,
         "charts_data": charts_data,
         "empty_state": empty_state,
+        "recent_activities": recent_activities,
     }
 
 
