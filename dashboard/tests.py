@@ -34,6 +34,18 @@ class DashboardHomeViewTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<h1", status_code=200)
+
+    def test_login_redirects_to_dashboard_after_success(self):
+        user = self._create_user_with_role("login-user", "direction")
+
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"username": user.username, "password": "test-pass-123"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.url)
 
     def test_dashboard_contains_expected_sections(self):
         user = self.user_model.objects.create_user(
@@ -44,16 +56,17 @@ class DashboardHomeViewTests(TestCase):
 
         response = self.client.get(self.url)
 
-        self.assertContains(response, "Tableau de bord")
-        self.assertContains(response, "Alertes")
-        self.assertContains(response, "Effectifs")
-        self.assertContains(response, "Paiements (total)")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Indicateurs clés (KPI)")
+        self.assertContains(response, "<div id=\"alertes\"", html=False)
+        self.assertContains(response, "Raccourcis modules")
 
     def test_dashboard_widget_filtering_by_role(self):
         admin_user = self._create_user_with_role("admin-role-user", "admin")
         self.client.force_login(admin_user)
         admin_response = self.client.get(self.url)
 
+        self.assertEqual(admin_response.status_code, 200)
         self.assertContains(admin_response, "Groupes utilisateurs")
         self.assertNotContains(admin_response, "Anomalies dossiers")
 
@@ -61,8 +74,21 @@ class DashboardHomeViewTests(TestCase):
         self.client.force_login(finance_user)
         finance_response = self.client.get(self.url)
 
+        self.assertEqual(finance_response.status_code, 200)
         self.assertContains(finance_response, "Échéances en retard")
         self.assertNotContains(finance_response, "Groupes utilisateurs")
+
+    def test_dashboard_is_not_empty_for_authenticated_user(self):
+        user = self._create_user_with_role("not-empty-user", "direction")
+        self.client.force_login(user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bienvenue")
+        self.assertContains(response, "Session active")
+        self.assertNotContains(response, "<body></body>", html=False)
+        self.assertContains(response, "dashboard-secondary-content")
 
 
 class DashboardScopeFilterTests(TestCase):
